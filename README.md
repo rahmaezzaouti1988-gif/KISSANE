@@ -1,4 +1,4 @@
-KISSANE Project Rules
+ Project Rules
 
 Mission
 
