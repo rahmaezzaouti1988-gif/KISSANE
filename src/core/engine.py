@@ -2,8 +2,10 @@
 from processor.processor import process_data
 from output.reporter import make_report
 
-def run():
-    data = collect_data()
+
+def run(data=None):
+    if data is None:
+        data = collect_data()
+
     processed = process_data(data)
-    report = make_report(processed)
-    return report
+    return make_report(processed)
