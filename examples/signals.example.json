@@ -1,0 +1,20 @@
+﻿[
+  {
+    "signal_id": "demo-001",
+    "title": "Example opportunity one",
+    "source_name": "Example Source",
+    "source_url": "https://example.com/opportunity-1",
+    "discovered_at": "2026-10-13T12:00:00+00:00",
+    "description": "First test signal",
+    "country_code": "MA"
+  },
+  {
+    "signal_id": "demo-002",
+    "title": "Example opportunity two",
+    "source_name": "Example Source",
+    "source_url": "https://example.com/opportunity-2",
+    "discovered_at": "2026-10-13T13:00:00+00:00",
+    "description": "Second test signal",
+    "country_code": "MA"
+  }
+]
