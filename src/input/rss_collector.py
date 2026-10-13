@@ -5,6 +5,8 @@ from html.parser import HTMLParser
 from urllib.error import URLError
 from urllib.parse import urlparse, urljoin
 from urllib.request import Request, urlopen
+import ssl
+import certifi
 import xml.etree.ElementTree as ET
 
 from core.models import EvidenceSignal
@@ -131,10 +133,12 @@ def fetch_rss(feed_url, limit=20, timeout=15):
         "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
     })
     try:
-        with urlopen(request, timeout=timeout) as response:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with urlopen(request, timeout=timeout, context=context) as response:
             content = response.read(MAX_FEED_BYTES + 1)
     except (URLError, TimeoutError, OSError) as exc:
         raise RuntimeError("Could not fetch RSS feed: {}".format(exc)) from exc
     if len(content) > MAX_FEED_BYTES:
         raise ValueError("RSS feed exceeds the 5 MB limit")
     return parse_rss(content, feed_url, limit=limit)
+

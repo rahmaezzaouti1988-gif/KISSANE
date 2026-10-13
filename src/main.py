@@ -6,17 +6,16 @@ from pathlib import Path
 
 from core.application import KissaneApplication
 from core.models import EvidenceSignal
+from input.rss_collector import fetch_rss
 
 
 def load_signals(path):
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"Cannot read valid JSON: {exc}") from exc
-
+        raise ValueError("Cannot read valid JSON: {}".format(exc)) from exc
     if not isinstance(data, list):
         raise ValueError("JSON root must be a list")
-
     signals = []
     for index, item in enumerate(data):
         try:
@@ -25,7 +24,7 @@ def load_signals(path):
             timestamp = item["discovered_at"]
             if not isinstance(timestamp, str):
                 raise ValueError("discovered_at must be a string")
-            signal = EvidenceSignal(
+            signals.append(EvidenceSignal(
                 signal_id=item["signal_id"],
                 title=item["title"],
                 source_name=item["source_name"],
@@ -33,10 +32,9 @@ def load_signals(path):
                 discovered_at=datetime.fromisoformat(timestamp.replace("Z", "+00:00")),
                 description=item.get("description", ""),
                 country_code=item.get("country_code"),
-            )
-            signals.append(signal)
+            ))
         except (KeyError, TypeError, AttributeError, ValueError) as exc:
-            raise ValueError(f"Invalid signal at index {index}: {exc}") from exc
+            raise ValueError("Invalid signal at index {}: {}".format(index, exc)) from exc
     return signals
 
 
@@ -48,6 +46,9 @@ def build_parser():
     commands.add_parser("list", help="List stored signals")
     ingest = commands.add_parser("ingest-json", help="Import signals from JSON")
     ingest.add_argument("file", help="JSON file path")
+    rss = commands.add_parser("fetch-rss", help="Fetch an RSS/Atom feed and store entries")
+    rss.add_argument("url", help="RSS or Atom feed URL")
+    rss.add_argument("--limit", type=int, default=20, help="Maximum entries to import (1-100)")
     return parser
 
 
@@ -58,6 +59,15 @@ def main(argv=None):
             signals = load_signals(args.file)
             with KissaneApplication(args.database) as app:
                 report = app.process_signals(signals)
+                print("Processed {} unique signal(s).".format(report["count"]))
+                print("Stored total: {}".format(len(app.list_signals())))
+        elif args.command == "fetch-rss":
+            if not 1 <= args.limit <= 100:
+                raise ValueError("limit must be between 1 and 100")
+            signals = fetch_rss(args.url, limit=args.limit)
+            with KissaneApplication(args.database) as app:
+                report = app.process_signals(signals)
+                print("Fetched {} signal(s).".format(len(signals)))
                 print("Processed {} unique signal(s).".format(report["count"]))
                 print("Stored total: {}".format(len(app.list_signals())))
         else:
