@@ -7,6 +7,7 @@ from pathlib import Path
 from core.application import KissaneApplication
 from core.models import EvidenceSignal
 from input.rss_collector import fetch_rss
+from processor.opportunity_scorer import score_signal
 
 
 def load_signals(path):
@@ -44,6 +45,7 @@ def build_parser():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="Show application status")
     commands.add_parser("list", help="List stored signals")
+    commands.add_parser("rank", help="Rank stored signals by commercial relevance")
     ingest = commands.add_parser("ingest-json", help="Import signals from JSON")
     ingest.add_argument("file", help="JSON file path")
     rss = commands.add_parser("fetch-rss", help="Fetch an RSS/Atom feed and store entries")
@@ -70,6 +72,15 @@ def main(argv=None):
                 print("Fetched {} signal(s).".format(len(signals)))
                 print("Processed {} unique signal(s).".format(report["count"]))
                 print("Stored total: {}".format(len(app.list_signals())))
+        elif args.command == "rank":
+            with KissaneApplication(args.database) as app:
+                ranked = [score_signal(signal) for signal in app.list_signals()]
+                ranked.sort(key=lambda item: item["score"], reverse=True)
+                if not ranked:
+                    print("No signals stored yet.")
+                for item in ranked:
+                    reason = "; ".join(item["reasons"])
+                    print("{} | {} | {} | {}".format(item["score"], item["category"], item["title"], reason))
         else:
             with KissaneApplication(args.database) as app:
                 signals = app.list_signals()
@@ -90,3 +101,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
